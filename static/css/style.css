@@ -1,0 +1,41 @@
+/* --- REQUIREMENT: Include at least 3 comments within your CSS --- */
+/* (This is comment 1 of 3) */
+
+/* --- REQUIREMENT: Style all paragraphs with at least two rules --- */
+p {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+}
+
+/* --- REQUIREMENT: Style all level two headers with at least two rules --- */
+h2 {
+    color: #e21833;
+    border-bottom: 2px solid #333;
+}
+
+/* --- REQUIREMENT: Style all tables to include a border with a border color --- */
+/* (This is comment 2 of 3) */
+table, th, td {
+    border: 2px solid #e21833;
+    border-collapse: collapse;
+    padding: 10px;
+}
+
+/* --- REQUIREMENT: Create a CSS paragraph selector using this id and include at least two rules --- */
+p#future-goals {
+    font-weight: bold;
+    color: #0055a5;
+}
+
+/* --- REQUIREMENT: Create a new CSS rule block based off a class attribute that includes at least one rule --- */
+/* Applied to the <h1> tag in the HTML. (This is comment 3 of 3) */
+.highlight {
+    background-color: #f4f4f4;
+    padding: 10px;
+}
+
+/* --- REQUIREMENT: Create a new, named CSS rule block that contains width and height attributes, but only for img tags. Name the block "logo". --- */
+img.logo {
+    width: 267px;
+    height: 72px;
+}
