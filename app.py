@@ -1,44 +1,62 @@
-from flask import Flask, render_template, request
-
+import os
+from flask import Flask, render_template, request, redirect, url_for, flash
+from models import db, Student, Major
+from datetime import datetime as dt
 
 app = Flask(__name__)
-
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(app.instance_path, 'university.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = 'beyond_course_scope'
+db.init_app(app)
 
 @app.route('/')
-def hello_world():  # put application's code here
-    return 'Hello World from Khanh Nguyen! This is my first code change'
+@app.route('/student/view')
+def student_view_all():
+    students = Student.query.outerjoin(Major, Student.major_id == Major.major_id).add_entity(Major).all()
+    return render_template('student_view_all.html', students=students)
 
-@app.route('/hello')
-def hello_world1():  # put application's code here
-    return 'Hello World from Khanh Nguyen! This is my HTML'
-
-@app.route('/about')
-def about():  # put application's code here
-    return render_template('about.html')
-
-@app.route('/about-css')
-def about_css():
-    return render_template('about-css.html')
-
-@app.route('/favorite-course')
-def favorite_course():
-    # 1. Grab the data from the URL and save them to variables
-    subject = request.args.get('subject')
-    course_number = request.args.get('course_number')
-    # 2. Print them to your console (optional, but helpful for debugging)
-    print('Subject entered:', subject)
-    print('Course number entered:', course_number)
-    # 3. CRITICAL STEP: Pass those variables to the template!
-    return render_template('favorite-course.html', subject=subject, course_number=course_number)
-
-@app.route('/contact', methods=['GET', 'POST'])
-def contact():
+@app.route('/student/create', methods=['GET', 'POST'])
+def student_create():
+    majors = Major.query.all()
     if request.method == 'POST':
-        return render_template('contact.html', form_submitted=True)
-    # If the user is just visiting the page normally (GET)
-    else:
-        return render_template('contact.html')
+        # MODIFICATION: Capture email from form
+        new_student = Student(
+            first_name=request.form['first_name'],
+            last_name=request.form['last_name'],
+            email=request.form['email'],
+            major_id=request.form['major_id'],
+            birth_date=dt.strptime(request.form['birth_date'], '%Y-%m-%d'),
+            is_honors=True if 'is_honors' in request.form else False
+        )
+        db.session.add(new_student)
+        db.session.commit()
+        flash(f'Student {new_student.first_name} added successfully!', 'success')
+        return redirect(url_for('student_view_all'))
+    return render_template('student_entry.html', action='create', majors=majors)
+
+@app.route('/student/edit/<int:student_id>', methods=['GET', 'POST'])
+def student_edit(student_id):
+    student = Student.query.get(student_id)
+    majors = Major.query.all()
+    if request.method == 'POST' and student:
+        # MODIFICATION: Update email
+        student.first_name = request.form['first_name']
+        student.last_name = request.form['last_name']
+        student.email = request.form['email']
+        student.major_id = request.form['major_id']
+        student.birth_date = dt.strptime(request.form['birth_date'], '%Y-%m-%d')
+        student.is_honors = True if 'is_honors' in request.form else False
+        db.session.commit()
+        flash(f'Student {student.first_name} updated!', 'success')
+        return redirect(url_for('student_view_all'))
+    return render_template('student_entry.html', student=student, action='update', majors=majors)
+
+@app.route('/student/view/<int:student_id>')
+def student_view(student_id):
+    student = Student.query.get(student_id)
+    return render_template('student_entry.html', student=student, action='view')
+
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True, port=8000)

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block page_title %}Student Entry{% endblock %}
+
+{% block page_content %}
+<form class="row g-3" action="{{ url_for('student_edit', student_id=student.student_id) if student else url_for('student_create') }}" method="post">
+
+  <div class="col-md-4">
+    <label class="form-label"><strong>First Name</strong></label>
+    {% if action in ['create', 'update'] %}
+    <input type="text" class="form-control" name="first_name" value="{{ student.first_name if student else '' }}" required>
+    {% else %}
+    <br>{{ student.first_name }}
+    {% endif %}
+  </div>
+
+  <div class="col-md-4">
+    <label class="form-label"><strong>Last Name</strong></label>
+    {% if action in ['create', 'update'] %}
+    <input type="text" class="form-control" name="last_name" value="{{ student.last_name if student else '' }}" required>
+    {% else %}
+    <br>{{ student.last_name }}
+    {% endif %}
+  </div>
+
+  <div class="col-md-4">
+    <label class="form-label"><strong>Email</strong></label>
+    {% if action in ['create', 'update'] %}
+    <input type="email" class="form-control" name="email" value="{{ student.email if student else '' }}" required>
+    {% else %}
+    <br>{{ student.email }}
+    {% endif %}
+  </div>
+
+  <div class="col-md-6">
+    <label class="form-label"><strong>Major</strong></label>
+    {% if action in ['create', 'update'] %}
+    <select class="form-select" name="major_id">
+        {% for major in majors %}
+        <option value="{{ major.major_id }}" {{ 'selected' if student and student.major_id == major.major_id else '' }}>{{ major.major }}</option>
+        {% endfor %}
+    </select>
+    {% else %}
+    <br>{{ student.major_id }}
+    {% endif %}
+  </div>
+
+  <div class="col-md-6">
+    <label class="form-label"><strong>Birth Date</strong></label>
+    {% if action in ['create', 'update'] %}
+    <input type="date" class="form-control" name="birth_date" value="{{ student.birth_date.strftime('%Y-%m-%d') if student else '' }}" required>
+    {% else %}
+    <br>{{ student.birth_date.strftime('%m/%d/%Y') if student else '' }}
+    {% endif %}
+  </div>
+
+  <div class="col-12 text-center">
+    {% if action in ['create', 'update'] %}
+    <button class="btn btn-primary" type="submit">Submit</button>
+    {% endif %}
+    <a href="{{ url_for('student_view_all') }}" class="btn btn-secondary">Cancel</a>
+  </div>
+</form>
+{% endblock %}
