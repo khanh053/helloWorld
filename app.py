@@ -56,7 +56,14 @@ def student_view(student_id):
     student = Student.query.get(student_id)
     return render_template('student_entry.html', student=student, action='view')
 
-
+@app.route('/student/delete/<int:student_id>')
+def student_delete(student_id):
+    student = Student.query.get(student_id)
+    if student:
+        db.session.delete(student)
+        db.session.commit()
+        flash("Student deleted successfully!") # This creates the green message
+    return redirect(url_for('student_view_all'))
 
 if __name__ == '__main__':
     app.run(debug=True, port=8000)
