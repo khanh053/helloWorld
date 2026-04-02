@@ -22,7 +22,7 @@
                 <td>{{ each_student.first_name }}</td>
                 <td>{{ each_student.last_name }}</td>
                 <td>{{ each_student.email }}</td>
-                <td>{{ major.major_name if major else 'N/A' }}</td>
+                <td>{{ major.major if major else 'N/A' }}</td>
                 <td>
                     <div class="btn-group" role="group">
                         <a href="{{ url_for('student_edit', student_id=each_student.student_id) }}"

@@ -15,8 +15,9 @@ app.config['SECRET_KEY'] = 'beyond_course_scope'
 db.init_app(app)
 
 login_manager = LoginManager()
-login_manager.login_view = 'login' # default login route
+login_manager.login_view = 'login'  # default login route
 login_manager.init_app(app)
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -34,7 +35,6 @@ def login():
     default_student_route_function = 'student_view'
 
     if request.method == 'GET':
-        # Determine where to redirect user if they are already logged in
         if current_user and current_user.is_authenticated:
             if current_user.role in ['MANAGER', 'ADMIN']:
                 return redirect(url_for(default_route_function))
@@ -51,14 +51,14 @@ def login():
 
         user = User.query.filter_by(username=username).first()
 
-        # Validate user credentials and redirect them to initial destination
         if user and check_password_hash(user.password, password):
             login_user(user)
 
             if current_user.role in ['MANAGER', 'ADMIN']:
                 return redirect(redirect_route if redirect_route else url_for(default_route_function))
             elif current_user.role == 'STUDENT':
-                return redirect(redirect_route if redirect_route else url_for(default_student_route_function, student_id=0))
+                return redirect(
+                    redirect_route if redirect_route else url_for(default_student_route_function, student_id=0))
         else:
             flash(f'Your login information was not correct. Please try again.', 'error')
 
@@ -92,29 +92,23 @@ def student_view_all():
 def student_view(student_id):
     if current_user.role in ['MANAGER', 'ADMIN']:
         student = Student.query.filter_by(student_id=student_id).first()
-        majors = Major.query.order_by(Major.major) \
-            .all()
+        majors = Major.query.order_by(Major.major).all()
 
         if student:
             return render_template('student_entry.html', student=student, majors=majors, action='read')
-
         else:
             flash(f'Student attempting to be viewed could not be found!', 'error')
             return redirect(url_for('student_view_all'))
 
     elif current_user.role == 'STUDENT':
         student = Student.query.filter_by(email=current_user.email).first()
-        majors = Major.query.order_by(Major.major) \
-            .all()
+        majors = Major.query.order_by(Major.major).all()
 
         if student:
             return render_template('student_entry.html', student=student, majors=majors, action='read')
-
         else:
             flash(f'Your record could not be located. Please contact advising.', 'error')
             return redirect(url_for('error'))
-
-    # This point should never be reached as all roles are accounted for. Adding defensive programming as a double check.
     else:
         flash(f'Invalid request. Please contact support if this problem persists.', 'error')
         return render_template('error.html')
@@ -125,28 +119,36 @@ def student_view(student_id):
 @role_required(['ADMIN', 'MANAGER'])
 def student_create():
     if request.method == 'GET':
-        majors = Major.query.order_by(Major.major) \
-            .order_by(Major.major) \
-            .all()
+        majors = Major.query.order_by(Major.major).all()
         return render_template('student_entry.html', majors=majors, action='create')
-    elif request.method == 'POST':
-        first_name = request.form['first_name']
-        last_name = request.form['last_name']
-        email = request.form['email']
-        major_id = request.form['major_id']
 
-        birth_date = request.form['birth_date']
+    elif request.method == 'POST':
+        # Using .get() prevents 400 Errors
+        first_name = request.form.get('first_name')
+        last_name = request.form.get('last_name')
+        email = request.form.get('email')
+        major_id = request.form.get('major_id')
+        birth_date = request.form.get('birth_date')
         is_honors = True if 'is_honors' in request.form else False
 
-        student = Student(first_name=first_name, last_name=last_name, email=email, major_id=major_id,
-                          birth_date=dt.strptime(birth_date, '%Y-%m-%d'), is_honors=is_honors)
-        db.session.add(student)
-        db.session.commit()
-        flash(f'{first_name} {last_name} was successfully added!', 'success')
-        return redirect(url_for('student_view_all'))
+        try:
+            student = Student(
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                major_id=major_id,
+                birth_date=dt.strptime(birth_date, '%Y-%m-%d') if birth_date else None,
+                is_honors=is_honors
+            )
+            db.session.add(student)
+            db.session.commit()
+            flash(f'{first_name} {last_name} was successfully added!', 'success')
+            return redirect(url_for('student_view_all'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error creating student: {str(e)}', 'error')
+            return redirect(url_for('student_create'))
 
-    # Address issue where unsupported HTTP request method is attempted
-    flash(f'Invalid request. Please contact support if this problem persists.', 'error')
     return redirect(url_for('student_view_all'))
 
 
@@ -154,40 +156,40 @@ def student_create():
 @login_required
 @role_required(['ADMIN', 'MANAGER'])
 def student_edit(student_id):
+    student = Student.query.filter_by(student_id=student_id).first()
+    if not student:
+        flash(f'Student attempting to be edited could not be found!', 'error')
+        return redirect(url_for('student_view_all'))
+
     if request.method == 'GET':
-        student = Student.query.filter_by(student_id=student_id).first()
-        majors = Major.query.order_by(Major.major) \
-            .order_by(Major.major) \
-            .all()
-
-        if student:
-            return render_template('student_entry.html', student=student, majors=majors, action='update')
-
-        else:
-            flash(f'Student attempting to be edited could not be found!', 'error')
+        majors = Major.query.order_by(Major.major).all()
+        return render_template('student_entry.html', student=student, majors=majors, action='update')
 
     elif request.method == 'POST':
-        student = Student.query.filter_by(student_id=student_id).first()
+        try:
+            # Defensive coding with .get() to avoid 400 Bad Request
+            student.first_name = request.form.get('first_name')
+            student.last_name = request.form.get('last_name')
+            student.email = request.form.get('email')
+            student.major_id = request.form.get('major_id')
 
-        if student:
-            student.first_name = request.form['first_name']
-            student.last_name = request.form['last_name']
-            student.email = request.form['email']
-            student.major_id = request.form['major_id']
-            student.birthdate = dt.strptime(request.form['birth_date'], '%Y-%m-%d')
-            student.num_credits_completed = request.form['num_credits_completed']
-            student.gpa = request.form['gpa']
+            birth_date_str = request.form.get('birth_date')
+            if birth_date_str:
+                student.birth_date = dt.strptime(birth_date_str, '%Y-%m-%d')
+
+            # Using defaults for numeric fields
+            student.num_credits_completed = request.form.get('num_credits_completed', 0)
+            student.gpa = request.form.get('gpa', 0.0)
             student.is_honors = True if 'is_honors' in request.form else False
 
             db.session.commit()
             flash(f'{student.first_name} {student.last_name} was successfully updated!', 'success')
-        else:
-            flash(f'Student attempting to be edited could not be found!', 'error')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating record: {str(e)}', 'error')
 
         return redirect(url_for('student_view_all'))
 
-    # Address issue where unsupported HTTP request method is attempted
-    flash(f'Invalid request. Please contact support if this problem persists.', 'error')
     return redirect(url_for('student_view_all'))
 
 
@@ -196,11 +198,10 @@ def student_edit(student_id):
 @role_required(['ADMIN'])
 def student_delete(student_id):
     student = Student.query.filter_by(student_id=student_id).first()
-    print(student_id)
     if student:
         db.session.delete(student)
         db.session.commit()
-        flash(f'{student} was successfully deleted!', 'success')
+        flash(f'{student.first_name} {student.last_name} was successfully deleted!', 'success')
     else:
         flash(f'Delete failed! Student could not be found.', 'error')
 
@@ -209,15 +210,14 @@ def student_delete(student_id):
 
 @app.route('/error')
 def error():
-    # Generic error handler to handle various site errors
-    # Before routing to this route, ensure flash function is used
     return render_template('error.html')
 
 
 @app.errorhandler(404)
 def page_not_found(e):
-    flash(f'Sorry! You are trying to access a page that does not exist. Please contact support if this problem persists.', 'error')
+    flash(f'Sorry! You are trying to access a page that does not exist.', 'error')
     return render_template('404.html'), 404
+
 
 @app.route('/training')
 @login_required
@@ -228,8 +228,3 @@ def training():
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-
-
-
-
