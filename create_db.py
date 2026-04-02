@@ -10,7 +10,7 @@ with app.app_context():
     print("Database wiped and recreated.")
 
     # 2. INITIAL LOADING OF USERS
-    # Requirement: Add yourself with STUDENT role and ELMS username as password
+    # Added MANAGER role to test your new /training route
     users = [
         {
             'username': 'khanh053',
@@ -20,8 +20,22 @@ with app.app_context():
             'password': generate_password_hash('khanh053', method='pbkdf2:sha256'),
             'role': 'STUDENT'
         },
-        {'username': 'admin', 'email': 'admin@umd.edu', 'first_name':'Crystal', 'last_name':'Ball',
-            'password': generate_password_hash('adminpw', method='pbkdf2:sha256'), 'role':'ADMIN'}
+        {
+            'username': 'admin',
+            'email': 'admin@umd.edu',
+            'first_name': 'Crystal',
+            'last_name': 'Ball',
+            'password': generate_password_hash('adminpw', method='pbkdf2:sha256'),
+            'role': 'ADMIN'
+        },
+        {
+            'username': 'manager',
+            'email': 'manager@umd.edu',
+            'first_name': 'Joe',
+            'last_name': 'King',
+            'password': generate_password_hash('managerpw', method='pbkdf2:sha256'),
+            'role': 'MANAGER'
+        }
     ]
 
     for u in users:
